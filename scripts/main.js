@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import gameConfig from '../config/gameConfig.js';
 import { createCamera, createRenderer, createScene, buildLevelGeometry, setupResizing } from './core/engine.js';
 import { loadLevel } from './core/levelLoader.js';
+import { logger } from './core/logger.js';
 import { PlayerController } from './player/playerController.js';
 import { EnemySpawner } from './enemy/enemySpawner.js';
 import { Hud } from './hud/hud.js';
@@ -50,7 +51,10 @@ async function start() {
     spawner.setAllowedTypes(level.enemyTypes || []);
     spawner.configureWaves(level.waves || gameConfig.enemies.waves);
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to initialize the training ground.', {
+      error,
+      nextSteps: 'Reload the page or check your network connection. If the issue continues, report the error and try again later.'
+    });
   }
 
   animate();
