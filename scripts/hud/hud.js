@@ -8,6 +8,7 @@ export class Hud {
 
     this.scoreDisplay = document.createElement('div');
     this.enemyDisplay = document.createElement('div');
+    this.healthDisplay = document.createElement('div');
 
     this.bottom = document.createElement('div');
     this.bottom.className = 'hud-bottom';
@@ -15,14 +16,17 @@ export class Hud {
 
     this.topBar.appendChild(this.scoreDisplay);
     this.topBar.appendChild(this.enemyDisplay);
+    this.topBar.appendChild(this.healthDisplay);
     this.root.appendChild(this.topBar);
     this.root.appendChild(this.bottom);
 
-    this.update({ score: 0, enemiesRemaining: 0 });
+    this.update({ score: 0, enemiesRemaining: 0, health: 0 });
   }
 
-  update({ score, enemiesRemaining }) {
+  update({ score, enemiesRemaining, health }) {
+    this.enemiesRemaining = enemiesRemaining;
     this.scoreDisplay.textContent = `Score: ${score}`;
     this.enemyDisplay.textContent = `Active enemies: ${enemiesRemaining}`;
+    this.healthDisplay.textContent = `Health: ${health}`;
   }
 }

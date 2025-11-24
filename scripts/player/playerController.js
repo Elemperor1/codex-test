@@ -13,6 +13,7 @@ export class PlayerController {
     this.projectiles = [];
     this.cooldown = 0;
     this.score = 0;
+    this.health = config.player.health;
 
     this.controls = new PointerLockControls(camera, renderer.domElement);
     renderer.domElement.addEventListener('click', () => this.controls.lock());
@@ -76,7 +77,7 @@ export class PlayerController {
     this.queueShot = false;
 
     this.updateProjectiles(delta, enemies);
-    this.hud.update({ score: this.score, enemiesRemaining: enemies.length });
+    this.hud.update({ score: this.score, enemiesRemaining: enemies.length, health: this.health });
   }
 
   shoot() {
@@ -96,6 +97,20 @@ export class PlayerController {
 
     this.scene.add(projectile);
     this.projectiles.push(projectile);
+  }
+
+  takeDamage(amount) {
+    this.health = Math.max(0, this.health - amount);
+    this.hud.update({ score: this.score, enemiesRemaining: this.hud.enemiesRemaining || 0, health: this.health });
+    if (this.health === 0) {
+      this.bottomMessage('You were defeated! Press refresh to try again.');
+    }
+  }
+
+  bottomMessage(text) {
+    if (this.hud && this.hud.bottom) {
+      this.hud.bottom.textContent = text;
+    }
   }
 
   updateProjectiles(delta, enemies) {
