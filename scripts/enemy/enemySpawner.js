@@ -13,9 +13,11 @@ export class EnemySpawner {
     this.allowedEnemyTypes = [];
     this.waves = [];
     this.currentWaveIndex = -1;
+    this.currentWave = null;
     this.spawnedThisWave = 0;
     this.waveComplete = false;
     this.intermissionTimer = 0;
+    this.intermissionHandled = false;
     this.scheduleComplete = false;
     this.difficulty = new DifficultyController(config.enemies.difficulty);
     this.totalWaves = 0;
@@ -57,10 +59,12 @@ export class EnemySpawner {
   configureWaves(waves = []) {
     this.waves = waves.length > 0 ? waves : this.config.enemies.waves || [];
     this.currentWaveIndex = -1;
+    this.currentWave = null;
     this.spawnedThisWave = 0;
     this.waveComplete = false;
     this.scheduleComplete = false;
     this.intermissionTimer = 0;
+    this.intermissionHandled = false;
     this.totalWaves = this.waves.length;
   }
 
@@ -73,17 +77,20 @@ export class EnemySpawner {
 
     if (this.intermissionTimer > 0) {
       this.intermissionTimer -= delta;
-      this.callbacks.onIntermission(
-        this.currentWaveIndex + 2,
-        this.waves.length,
-        Math.max(this.intermissionTimer, 0)
-      );
+      if (!this.intermissionHandled) {
+        this.intermissionHandled = true;
+        this.callbacks.onIntermission(
+          this.currentWaveIndex + 2,
+          this.waves.length,
+          Math.max(this.intermissionTimer, 0)
+        );
+      }
       if (this.intermissionTimer <= 0) {
         this.startNextWave();
       }
     }
 
-    const wave = this.waves[this.currentWaveIndex];
+    const wave = this.currentWave;
     this.difficulty.update(player, {
       waveIndex: this.currentWaveIndex,
       enemiesAlive: this.enemies.length
@@ -166,6 +173,7 @@ export class EnemySpawner {
     this.spawnTimer = 0;
     this.waveComplete = false;
     this.intermissionTimer = 0;
+    this.intermissionHandled = false;
 
     if (this.currentWaveIndex >= this.waves.length) {
       this.scheduleComplete = true;
@@ -173,8 +181,9 @@ export class EnemySpawner {
       return;
     }
 
+    this.currentWave = { ...this.waves[this.currentWaveIndex] };
     const waveNumber = this.currentWaveIndex + 1;
-    this.callbacks.onWaveStart(waveNumber, this.waves.length, this.waves[this.currentWaveIndex]);
+    this.callbacks.onWaveStart(waveNumber, this.waves.length, this.currentWave);
   }
 
   finishWave() {
@@ -187,6 +196,8 @@ export class EnemySpawner {
       this.scheduleComplete = true;
       this.callbacks.onScheduleComplete();
     } else {
+      this.currentWave = null;
+      this.intermissionHandled = false;
       const currentWave = this.waves[this.currentWaveIndex];
       this.intermissionTimer = currentWave.intermission || this.config.enemies.waveIntermission || 0;
     }
