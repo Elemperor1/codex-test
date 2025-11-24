@@ -133,6 +133,53 @@ const gameConfig = {
     networkFetchOptions: {
       // Add headers like authentication tokens here if needed. Avoid PII/secrets.
     }
+  },
+  objectives: {
+    types: {
+      survival: {
+        label: 'Survival',
+        defaultDescription: 'Hold out until reinforcements arrive.'
+      },
+      elimination: {
+        label: 'Elimination',
+        defaultDescription: 'Clear the marked hostiles.'
+      },
+      defend: {
+        label: 'Defend',
+        defaultDescription: 'Protect the area while under pressure.'
+      }
+    },
+    levels: {
+      trainingGround: [
+        {
+          id: 'tg-elimination-intro',
+          type: 'elimination',
+          description: 'Eliminate the early patrols to secure the arena.',
+          waves: [1, 2]
+        },
+        {
+          id: 'tg-mid-survival',
+          type: 'survival',
+          description: 'Survive the escalating assault.',
+          waves: [3, 4],
+          durationSeconds: 45
+        },
+        {
+          id: 'tg-final-elimination',
+          type: 'elimination',
+          description: 'Eliminate the final strike team.',
+          waves: [5]
+        }
+      ],
+      default: [
+        {
+          id: 'default-elimination',
+          type: 'elimination',
+          description: 'Clear all enemy waves in the playlist.',
+          waves: 'all'
+        }
+      ]
+    }
   }
 };
 

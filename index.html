@@ -46,6 +46,59 @@
         gap: 6px;
         min-width: 280px;
       }
+      .hud-objective {
+        min-width: 260px;
+        padding: 10px 12px;
+        background: rgba(59, 130, 246, 0.12);
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        border-radius: 8px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(2px);
+        max-width: 420px;
+      }
+      .objective-title {
+        font-weight: 700;
+        color: #bfdbfe;
+      }
+      .objective-description {
+        font-size: 14px;
+        opacity: 0.9;
+        margin-top: 2px;
+      }
+      .objective-timer {
+        font-size: 12px;
+        margin-top: 6px;
+        color: #cbd5e1;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .objective-timer.visible {
+        opacity: 1;
+      }
+      .objective-banner {
+        align-self: center;
+        margin-top: 8px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+        opacity: 0;
+        transform: translateY(-8px);
+        transition: opacity 0.22s ease, transform 0.22s ease;
+      }
+      .objective-banner.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .objective-banner.complete {
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+        color: #f8fafc;
+      }
+      .objective-banner.failed {
+        background: linear-gradient(90deg, #ef4444, #b91c1c);
+        color: #fee2e2;
+      }
       .hud-bar {
         display: grid;
         grid-template-columns: 70px 1fr;

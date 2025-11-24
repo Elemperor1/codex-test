@@ -3,6 +3,7 @@ import gameConfig from '../config/gameConfig.js';
 import { createCamera, createRenderer, createScene, buildLevelGeometry, setupResizing } from './core/engine.js';
 import { loadLevel } from './core/levelLoader.js';
 import { logger } from './core/logger.js';
+import { ObjectiveManager } from './core/objectiveManager.js';
 import { PlayerController } from './player/playerController.js';
 import { EnemySpawner } from './enemy/enemySpawner.js';
 import { Hud } from './hud/hud.js';
@@ -17,6 +18,7 @@ setupResizing(camera, renderer, container);
 
 const player = new PlayerController(camera, renderer, scene, hud, gameConfig);
 const spawner = new EnemySpawner(scene, gameConfig);
+const objectiveManager = new ObjectiveManager(gameConfig, hud);
 
 // Initialize client-side sinks before gameplay begins.
 logger.enableOverlaySink(gameConfig.logging?.overlay);
@@ -37,6 +39,7 @@ player.onDeath = () => {
     armor: player.armor
   });
   hud.showRestart(restartGame);
+  objectiveManager.onPlayerDown();
 };
 
 spawner.setCallbacks({
@@ -45,11 +48,13 @@ spawner.setCallbacks({
     hud.setWaveStatus(`Wave ${waveNumber}/${totalWaves}: ${types}`);
     logger.addBreadcrumb('wave_start', { waveNumber, totalWaves, types });
     waveLogger.info('Wave started.', { waveNumber, totalWaves, types });
+    objectiveManager.onWaveStart(waveNumber, totalWaves, wave);
   },
   onWaveComplete: (waveNumber, totalWaves) => {
     hud.setWaveStatus(`Wave ${waveNumber}/${totalWaves} cleared`);
     logger.addBreadcrumb('wave_complete', { waveNumber, totalWaves });
     waveLogger.info('Wave cleared.', { waveNumber, totalWaves });
+    objectiveManager.onWaveComplete(waveNumber);
   },
   onIntermission: (nextWave, totalWaves, timeRemaining) => {
     hud.showIntermission(nextWave, totalWaves, timeRemaining);
@@ -61,6 +66,7 @@ spawner.setCallbacks({
     hud.setWaveStatus('All waves defeated!');
     player.bottomMessage('All enemy waves cleared!');
     waveLogger.info('Enemy schedule complete.', { totalWaves: spawner.totalWaves });
+    objectiveManager.onScheduleComplete();
   }
 });
 
@@ -78,6 +84,7 @@ async function start() {
     spawner.setObstacles(level.obstacles);
     spawner.setAllowedTypes(level.enemyTypes || []);
     spawner.configureWaves(level.waves || gameConfig.enemies.waves);
+    objectiveManager.setLevel(logger.levelName, spawner.totalWaves);
     logger.addBreadcrumb('scene_load_complete', { level: logger.levelName, spawnPoints: level.enemySpawnPoints?.length });
     sessionLogger.info('Level loaded and session ready.', {
       level: logger.levelName,
@@ -106,6 +113,7 @@ function animate() {
 
   spawner.update(delta, player);
   player.update(delta, spawner.enemies);
+  objectiveManager.update(delta);
 
   renderer.render(scene, camera);
 }

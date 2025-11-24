@@ -10,6 +10,19 @@ export class Hud {
     this.enemyDisplay = document.createElement('div');
     this.waveDisplay = document.createElement('div');
 
+    this.objectivePanel = document.createElement('div');
+    this.objectivePanel.className = 'hud-objective';
+    this.objectiveTitle = document.createElement('div');
+    this.objectiveTitle.className = 'objective-title';
+    this.objectiveDescription = document.createElement('div');
+    this.objectiveDescription.className = 'objective-description';
+    this.objectiveTimer = document.createElement('div');
+    this.objectiveTimer.className = 'objective-timer';
+    this.objectivePanel.append(this.objectiveTitle, this.objectiveDescription, this.objectiveTimer);
+
+    this.objectiveBanner = document.createElement('div');
+    this.objectiveBanner.className = 'objective-banner';
+
     this.bottom = document.createElement('div');
     this.bottom.className = 'hud-bottom';
     this.bottom.innerHTML = 'Click to lock the mouse, WASD to move, Left click to shoot, R to reload';
@@ -40,8 +53,10 @@ export class Hud {
     this.topBar.appendChild(this.scoreDisplay);
     this.topBar.appendChild(this.enemyDisplay);
     this.topBar.appendChild(this.waveDisplay);
+    this.topBar.appendChild(this.objectivePanel);
     this.topBar.appendChild(this.statusGroup);
     this.root.appendChild(this.topBar);
+    this.root.appendChild(this.objectiveBanner);
     this.root.appendChild(this.lowHealthNotice);
     this.root.appendChild(this.bottom);
     this.root.appendChild(this.damageIndicator);
@@ -130,6 +145,38 @@ export class Hud {
   showIntermission(nextWaveNumber, totalWaves, timeRemaining) {
     const formatted = timeRemaining.toFixed(1);
     this.setWaveStatus(`Next wave (${nextWaveNumber}/${totalWaves}) in ${formatted}s`);
+  }
+
+  setObjective({ title, description }) {
+    this.objectiveTitle.textContent = title || 'Objective incoming';
+    this.objectiveDescription.textContent = description || '';
+  }
+
+  updateObjectiveTimer(value, total) {
+    if (value == null) {
+      this.objectiveTimer.textContent = '';
+      this.objectiveTimer.classList.remove('visible');
+      return;
+    }
+
+    this.objectiveTimer.textContent = total ? `Timer: ${value} / ${total}` : `Timer: ${value}`;
+    this.objectiveTimer.classList.add('visible');
+  }
+
+  showObjectiveBanner(state, text) {
+    this.objectiveBanner.textContent = text;
+    this.objectiveBanner.classList.remove('complete', 'failed');
+    if (state === 'complete') {
+      this.objectiveBanner.classList.add('complete');
+    } else if (state === 'failed') {
+      this.objectiveBanner.classList.add('failed');
+    }
+    this.objectiveBanner.classList.add('visible');
+  }
+
+  clearObjectiveBanner() {
+    this.objectiveBanner.classList.remove('visible', 'complete', 'failed');
+    this.objectiveBanner.textContent = '';
   }
 
   showRestart(onRestart) {
