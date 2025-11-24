@@ -17,6 +17,23 @@ setupResizing(camera, renderer, container);
 const player = new PlayerController(camera, renderer, scene, hud, gameConfig);
 const spawner = new EnemySpawner(scene, gameConfig);
 
+spawner.setCallbacks({
+  onWaveStart: (waveNumber, totalWaves, wave) => {
+    const types = wave.types && wave.types.length > 0 ? wave.types.join(', ') : gameConfig.enemies.defaultType;
+    hud.setWaveStatus(`Wave ${waveNumber}/${totalWaves}: ${types}`);
+  },
+  onWaveComplete: (waveNumber, totalWaves) => {
+    hud.setWaveStatus(`Wave ${waveNumber}/${totalWaves} cleared`);
+  },
+  onIntermission: (nextWave, totalWaves, timeRemaining) => {
+    hud.showIntermission(nextWave, totalWaves, timeRemaining);
+  },
+  onScheduleComplete: () => {
+    hud.setWaveStatus('All waves defeated!');
+    player.bottomMessage('All enemy waves cleared!');
+  }
+});
+
 const clock = new THREE.Clock();
 
 async function start() {
@@ -26,6 +43,8 @@ async function start() {
     player.setPosition(new THREE.Vector3(...level.playerStart));
     spawner.loadSpawnPoints(level.enemySpawnPoints);
     spawner.setObstacles(level.obstacles);
+    spawner.setAllowedTypes(level.enemyTypes || []);
+    spawner.configureWaves(level.waves || gameConfig.enemies.waves);
   } catch (error) {
     console.error(error);
   }

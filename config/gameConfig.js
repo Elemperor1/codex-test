@@ -17,6 +17,13 @@ const gameConfig = {
     spawnInterval: 4,
     maxSimultaneous: 10,
     defaultType: 'grunt',
+    waveIntermission: 3,
+    waves: [
+      { count: 6, spawnInterval: 3.5, types: ['grunt'] },
+      { count: 8, spawnInterval: 3, types: ['grunt', 'ranger'] },
+      { count: 10, spawnInterval: 2.6, types: ['skirmisher', 'ranger'] },
+      { count: 6, spawnInterval: 3.75, types: ['brute', 'grunt'] }
+    ],
     archetypes: {
       grunt: {
         speed: 6,
@@ -40,6 +47,41 @@ const gameConfig = {
         strafeAmplitude: 1.2,
         projectileSpeed: 72,
         projectileLifetime: 3,
+        attackType: 'ranged'
+      },
+      skirmisher: {
+        speed: 8,
+        health: 4,
+        aggroRange: 32,
+        attackRange: 4,
+        attackDamage: 7,
+        attackCooldown: 1,
+        patrolRadius: 14,
+        strafeAmplitude: 1.3,
+        attackType: 'melee'
+      },
+      brute: {
+        speed: 4,
+        health: 14,
+        aggroRange: 30,
+        attackRange: 3.2,
+        attackDamage: 18,
+        attackCooldown: 1.8,
+        patrolRadius: 8,
+        strafeAmplitude: 0.4,
+        attackType: 'melee'
+      },
+      artillery: {
+        speed: 3,
+        health: 8,
+        aggroRange: 40,
+        attackRange: 22,
+        attackDamage: 9,
+        attackCooldown: 2.4,
+        patrolRadius: 10,
+        strafeAmplitude: 0.2,
+        projectileSpeed: 56,
+        projectileLifetime: 3.6,
         attackType: 'ranged'
       }
     },
