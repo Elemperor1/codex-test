@@ -5,13 +5,20 @@ const gameConfig = {
     maxSpeed: 24
   },
   player: {
-    health: 120
+    maxHealth: 140,
+    maxArmor: 80,
+    healthRegenRate: 6,
+    armorRegenRate: 10,
+    lowHealthThreshold: 0.25
   },
   combat: {
     fireRate: 6,
     projectileSpeed: 120,
     projectileLifetime: 2.5,
-    damage: 1
+    damage: 1,
+    magazineSize: 24,
+    reserveAmmo: 180,
+    reloadTime: 1.6
   },
   enemies: {
     spawnInterval: 4,

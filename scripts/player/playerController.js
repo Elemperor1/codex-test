@@ -13,7 +13,20 @@ export class PlayerController {
     this.projectiles = [];
     this.cooldown = 0;
     this.score = 0;
-    this.health = config.player.health;
+    this.maxHealth = config.player.maxHealth;
+    this.maxArmor = config.player.maxArmor;
+    this.health = this.maxHealth;
+    this.armor = this.maxArmor;
+    this.healthRegenRate = config.player.healthRegenRate || 0;
+    this.armorRegenRate = config.player.armorRegenRate || 0;
+    this.lowHealthThreshold = config.player.lowHealthThreshold || 0.2;
+    this.magazineSize = config.combat.magazineSize || 24;
+    this.ammoInMagazine = this.magazineSize;
+    this.reserveAmmo = config.combat.reserveAmmo || 0;
+    this.reloadTime = config.combat.reloadTime || 1.5;
+    this.reloadTimer = 0;
+    this.isReloading = false;
+    this.isDead = false;
 
     this.controls = new PointerLockControls(camera, renderer.domElement);
     renderer.domElement.addEventListener('click', () => this.controls.lock());
@@ -23,14 +36,20 @@ export class PlayerController {
 
   setupInput(target) {
     document.addEventListener('keydown', (event) => {
+      if (this.isDead) return;
       this.keys[event.code] = true;
+      if (event.code === 'KeyR') {
+        this.beginReload();
+      }
     });
 
     document.addEventListener('keyup', (event) => {
+      if (this.isDead) return;
       this.keys[event.code] = false;
     });
 
     target.addEventListener('mousedown', (event) => {
+      if (this.isDead || this.isReloading) return;
       if (event.button === 0) {
         this.queueShot = true;
       }
@@ -44,6 +63,11 @@ export class PlayerController {
   update(delta, enemies) {
     const { acceleration, deceleration, maxSpeed } = this.config.movement;
     const controlsObject = this.controls.getObject();
+
+    if (this.isDead) {
+      this.hud.update(this.buildHudState(enemies.length));
+      return;
+    }
 
     this.direction.set(0, 0, 0);
     if (this.keys['KeyW']) this.direction.z += 1;
@@ -69,15 +93,20 @@ export class PlayerController {
 
     controlsObject.position.y = 2.4;
 
+    this.tickRegen(delta);
+    this.updateReload(delta);
+
     this.cooldown -= delta;
-    if (this.queueShot && this.cooldown <= 0) {
+    if (this.queueShot && this.cooldown <= 0 && this.consumeAmmo()) {
       this.shoot();
       this.cooldown = 1 / this.config.combat.fireRate;
+    } else if (this.queueShot && this.ammoInMagazine <= 0) {
+      this.beginReload();
     }
     this.queueShot = false;
 
     this.updateProjectiles(delta, enemies);
-    this.hud.update({ score: this.score, enemiesRemaining: enemies.length, health: this.health });
+    this.hud.update(this.buildHudState(enemies.length));
   }
 
   shoot() {
@@ -100,10 +129,67 @@ export class PlayerController {
   }
 
   takeDamage(amount) {
-    this.health = Math.max(0, this.health - amount);
-    this.hud.update({ score: this.score, enemiesRemaining: this.hud.enemiesRemaining || 0, health: this.health });
+    if (this.isDead) return;
+
+    const armorDamage = Math.min(this.armor, amount);
+    const remainingDamage = amount - armorDamage;
+    this.armor = Math.max(0, this.armor - armorDamage);
+    this.health = Math.max(0, this.health - remainingDamage);
+
+    this.hud.showDamageIndicator();
+    const isLowHealth = this.health / this.maxHealth <= this.lowHealthThreshold;
+    this.hud.update({ ...this.buildHudState(this.hud.enemiesRemaining || 0), lowHealth: isLowHealth });
+
     if (this.health === 0) {
-      this.bottomMessage('You were defeated! Press refresh to try again.');
+      this.handleDeath();
+    }
+  }
+
+  handleDeath() {
+    this.isDead = true;
+    this.bottomMessage('You were defeated! Restart to try again.');
+    this.controls.unlock();
+    if (typeof this.onDeath === 'function') {
+      this.onDeath();
+    }
+  }
+
+  beginReload() {
+    if (this.isDead || this.isReloading) return;
+    const hasSpareAmmo = this.reserveAmmo > 0;
+    const needsAmmo = this.ammoInMagazine < this.magazineSize;
+    if (!hasSpareAmmo || !needsAmmo) return;
+    this.isReloading = true;
+    this.reloadTimer = this.reloadTime;
+    this.hud.update({ ...this.buildHudState(this.hud.enemiesRemaining || 0), isReloading: true });
+  }
+
+  updateReload(delta) {
+    if (!this.isReloading) return;
+    this.reloadTimer -= delta;
+    if (this.reloadTimer <= 0) {
+      const needed = this.magazineSize - this.ammoInMagazine;
+      const toLoad = Math.min(needed, this.reserveAmmo);
+      this.ammoInMagazine += toLoad;
+      this.reserveAmmo -= toLoad;
+      this.isReloading = false;
+    }
+  }
+
+  consumeAmmo() {
+    if (this.ammoInMagazine <= 0 || this.isReloading) return false;
+    this.ammoInMagazine -= 1;
+    return true;
+  }
+
+  tickRegen(delta) {
+    if (this.health > 0) {
+      if (this.health < this.maxHealth) {
+        this.health = Math.min(this.maxHealth, this.health + this.healthRegenRate * delta);
+      }
+      if (this.armor < this.maxArmor) {
+        this.armor = Math.min(this.maxArmor, this.armor + this.armorRegenRate * delta);
+      }
     }
   }
 
@@ -141,5 +227,21 @@ export class PlayerController {
 
       return true;
     });
+  }
+
+  buildHudState(enemiesRemaining) {
+    return {
+      score: this.score,
+      enemiesRemaining,
+      health: Math.round(this.health),
+      armor: Math.round(this.armor),
+      maxHealth: this.maxHealth,
+      maxArmor: this.maxArmor,
+      ammoInMagazine: this.ammoInMagazine,
+      magazineSize: this.magazineSize,
+      reserveAmmo: this.reserveAmmo,
+      isReloading: this.isReloading,
+      lowHealth: this.health / this.maxHealth <= this.lowHealthThreshold
+    };
   }
 }
