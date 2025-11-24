@@ -82,6 +82,7 @@ async function start() {
     player.setPosition(new THREE.Vector3(...level.playerStart));
     spawner.loadSpawnPoints(level.enemySpawnPoints);
     spawner.setObstacles(level.obstacles);
+    player.setObstacles(spawner.getObstacles());
     spawner.setAllowedTypes(level.enemyTypes || []);
     spawner.configureWaves(level.waves || gameConfig.enemies.waves);
     objectiveManager.setLevel(logger.levelName, spawner.totalWaves);

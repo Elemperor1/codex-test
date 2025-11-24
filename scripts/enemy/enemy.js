@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { applyMovementWithCollisions } from '../core/collision.js';
+import { logger } from '../core/logger.js';
 
 export class Enemy {
   constructor(scene, position, config, type) {
@@ -18,6 +20,9 @@ export class Enemy {
     this.projectiles = [];
     this.deathTimer = 0;
     this.isDead = false;
+    this.collisionRadius = this.stats.collisionRadius || 0.9;
+    this.lastCollisionLog = 0;
+    this.navigationLogger = logger.withContext({ module: 'enemy', feature: 'navigation', archetype: this.type });
 
     this.mesh = this.createMesh();
     this.mesh.position.copy(position);
@@ -160,7 +165,16 @@ export class Enemy {
 
     if (desired.lengthSq() > 0.001) {
       desired.normalize();
-      this.mesh.position.addScaledVector(desired, this.speed * delta);
+      const step = desired.multiplyScalar(this.speed * delta);
+      const { position: resolvedPosition, blockedAxes } = applyMovementWithCollisions(
+        this.mesh.position,
+        step,
+        obstacles,
+        this.collisionRadius
+      );
+
+      this.mesh.position.copy(resolvedPosition);
+      this.logCollision(blockedAxes, resolvedPosition, obstacles.length);
       this.mesh.lookAt(target.x, this.mesh.position.y, target.z);
     }
   }
@@ -180,6 +194,23 @@ export class Enemy {
     });
 
     return avoidance;
+  }
+
+  logCollision(blockedAxes, position, obstacleCount) {
+    if (!blockedAxes || blockedAxes.length === 0) return;
+
+    const now = performance.now();
+    if (now - this.lastCollisionLog < 350) return;
+    this.lastCollisionLog = now;
+
+    this.navigationLogger.debug('Enemy movement blocked by obstacle.', {
+      actorId: this.id || 'enemy',
+      blockedAxes,
+      position: { x: position.x, y: position.y, z: position.z },
+      obstacleCount,
+      module: 'enemy',
+      feature: 'navigation'
+    });
   }
 
   createPatrolPoint() {
