@@ -17,6 +17,10 @@ setupResizing(camera, renderer, container);
 const player = new PlayerController(camera, renderer, scene, hud, gameConfig);
 const spawner = new EnemySpawner(scene, gameConfig);
 
+player.onDeath = () => {
+  hud.showRestart(restartGame);
+};
+
 spawner.setCallbacks({
   onWaveStart: (waveNumber, totalWaves, wave) => {
     const types = wave.types && wave.types.length > 0 ? wave.types.join(', ') : gameConfig.enemies.defaultType;
@@ -50,6 +54,10 @@ async function start() {
   }
 
   animate();
+}
+
+function restartGame() {
+  window.location.reload();
 }
 
 function animate() {
