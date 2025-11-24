@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { applyMovementWithCollisions } from '../core/collision.js';
+import { logger } from '../core/logger.js';
 
 export class PlayerController {
   constructor(camera, renderer, scene, hud, config) {
@@ -10,6 +12,7 @@ export class PlayerController {
     this.keys = {};
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
+    this.obstacles = [];
     this.projectiles = [];
     this.cooldown = 0;
     this.score = 0;
@@ -20,6 +23,7 @@ export class PlayerController {
     this.healthRegenRate = config.player.healthRegenRate || 0;
     this.armorRegenRate = config.player.armorRegenRate || 0;
     this.lowHealthThreshold = config.player.lowHealthThreshold || 0.2;
+    this.collisionRadius = config.player.collisionRadius || 1;
     this.magazineSize = config.combat.magazineSize || 24;
     this.ammoInMagazine = this.magazineSize;
     this.reserveAmmo = config.combat.reserveAmmo || 0;
@@ -27,6 +31,9 @@ export class PlayerController {
     this.reloadTimer = 0;
     this.isReloading = false;
     this.isDead = false;
+    this.id = 'player';
+    this.lastCollisionLog = 0;
+    this.movementLogger = logger.withContext({ module: 'player', feature: 'navigation' });
 
     this.controls = new PointerLockControls(camera, renderer.domElement);
     renderer.domElement.addEventListener('click', () => this.controls.lock());
@@ -60,6 +67,16 @@ export class PlayerController {
     this.controls.getObject().position.copy(position);
   }
 
+  setObstacles(obstacles = []) {
+    this.obstacles = obstacles;
+    this.movementLogger.info('Player collision bounds configured.', {
+      actorId: this.id,
+      obstacleCount: obstacles.length,
+      module: 'player',
+      scene: this.scene?.name || 'trainingGround'
+    });
+  }
+
   update(delta, enemies) {
     const { acceleration, deceleration, maxSpeed } = this.config.movement;
     const controlsObject = this.controls.getObject();
@@ -88,10 +105,24 @@ export class PlayerController {
     this.velocity.x = THREE.MathUtils.clamp(this.velocity.x, -maxSpeed, maxSpeed);
     this.velocity.z = THREE.MathUtils.clamp(this.velocity.z, -maxSpeed, maxSpeed);
 
-    controlsObject.translateX(this.velocity.x * delta);
-    controlsObject.translateZ(-this.velocity.z * delta);
+    const moveVector = new THREE.Vector3(this.velocity.x * delta, 0, -this.velocity.z * delta);
+    const { position: resolvedPosition, blockedAxes } = applyMovementWithCollisions(
+      controlsObject.position,
+      moveVector,
+      this.obstacles,
+      this.collisionRadius
+    );
 
+    if (blockedAxes.includes('x')) {
+      this.velocity.x = 0;
+    }
+    if (blockedAxes.includes('z')) {
+      this.velocity.z = 0;
+    }
+
+    controlsObject.position.copy(resolvedPosition);
     controlsObject.position.y = 2.4;
+    this.logCollision(blockedAxes, resolvedPosition);
 
     this.tickRegen(delta);
     this.updateReload(delta);
@@ -107,6 +138,23 @@ export class PlayerController {
 
     this.updateProjectiles(delta, enemies);
     this.hud.update(this.buildHudState(enemies.length));
+  }
+
+  logCollision(blockedAxes, resolvedPosition) {
+    if (!blockedAxes.length) return;
+
+    const now = performance.now();
+    if (now - this.lastCollisionLog < 300) return;
+    this.lastCollisionLog = now;
+
+    this.movementLogger.debug('Collision prevented player movement.', {
+      actorId: this.id,
+      blockedAxes,
+      position: { x: resolvedPosition.x, y: resolvedPosition.y, z: resolvedPosition.z },
+      obstacleCount: this.obstacles.length,
+      module: 'player',
+      feature: 'navigation'
+    });
   }
 
   shoot() {

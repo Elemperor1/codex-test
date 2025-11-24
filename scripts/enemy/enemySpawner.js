@@ -42,6 +42,10 @@ export class EnemySpawner {
     });
   }
 
+  getObstacles() {
+    return this.obstacles;
+  }
+
   setAllowedTypes(types = []) {
     this.allowedEnemyTypes = types;
   }
