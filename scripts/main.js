@@ -25,6 +25,7 @@ async function start() {
     buildLevelGeometry(scene, level, gameConfig);
     player.setPosition(new THREE.Vector3(...level.playerStart));
     spawner.loadSpawnPoints(level.enemySpawnPoints);
+    spawner.setObstacles(level.obstacles);
   } catch (error) {
     console.error(error);
   }
@@ -36,7 +37,7 @@ function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
 
-  spawner.update(delta, player.controls.getObject().position);
+  spawner.update(delta, player);
   player.update(delta, spawner.enemies);
 
   renderer.render(scene, camera);
